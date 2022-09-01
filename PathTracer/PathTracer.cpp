@@ -2,6 +2,7 @@
 
 #include "PathTracer.h"
 
+#include "camera.h"
 #include "color.h"
 #include "hittable_list.h"
 #include "stb_image_write.h"
@@ -23,22 +24,16 @@ color ray_color(const ray& r, const hittable_list& world) {
 int main() {
 	// Image Settings
 
-	const double ASPECT_RATIO = 16.0 / 9.0;
-	const int IMAGE_WIDTH = 256;
-	const int IMAGE_HEIGHT = static_cast<int>(IMAGE_WIDTH / ASPECT_RATIO);
-	const int IMAGE_CHANNELS = 3;
-	const int IMAGE_DATA_STRIDE = IMAGE_WIDTH * IMAGE_CHANNELS;
+	const double aspect_ratio = 16.0 / 9.0;
+	const int image_width = 1024;
+	const int image_height = static_cast<int>(image_width / aspect_ratio);
+	const int image_channels = 3;
+	const int image_data_stride = image_width * image_channels;
+	const int samples_per_pixel = 100;
 
 	// Camera Settings
 
-	double viewport_height = 2.0;
-	double viewport_width = ASPECT_RATIO * viewport_height;
-	double focal_length = 1.0;
-
-	auto origin = point3(0, 0, 0);
-	auto horizontal = vec3(viewport_width, 0, 0);
-	auto vertical = vec3(0, viewport_height, 0);
-	auto lower_left_corner = origin - (horizontal / 2) - (vertical / 2) - vec3(0, 0, focal_length);
+	camera cam;
 
 	// World Setup
 
@@ -48,22 +43,30 @@ int main() {
 
 	// Render
 
-	unsigned char * data = new unsigned char[IMAGE_WIDTH * IMAGE_HEIGHT * IMAGE_CHANNELS];
+	unsigned char * data = new unsigned char[image_width * image_height * image_channels];
 
 	uint32_t ind = 0;
-	for (int h = IMAGE_HEIGHT - 1; h >= 0; --h) {
-		printf("%f%%\n", 100 * float(IMAGE_HEIGHT - (h + 1)) / IMAGE_HEIGHT);
+	for (int h = image_height - 1; h >= 0; --h) {
+		printf("%f%%\n", 100 * float(image_height - (h + 1)) / image_height);
 
-		for (int w = 0; w < IMAGE_WIDTH; ++w) {
-			auto u = w / (double(IMAGE_WIDTH) - 1);
-			auto v = h / (double(IMAGE_HEIGHT) - 1);
+		for (int w = 0; w < image_width; ++w) {
+			color pixel_color(0, 0, 0);
+			for (int s = 0; s < samples_per_pixel; ++s) {
+				auto u = (w + random_double()) / (image_width - 1);
+				auto v = (h + random_double()) / (image_height - 1);
 
-			ray r(origin, lower_left_corner + (u * horizontal) + (v * vertical) - origin);
-			color pixel_color = ray_color(r, world);
+				ray r = cam.get_ray(u, v);
+				pixel_color += ray_color(r, world);
+			}
 
+			/*
 			data[ind++] = unsigned char (255 * pixel_color.x());
 			data[ind++] = unsigned char (255 * pixel_color.y());
 			data[ind++] = unsigned char (255 * pixel_color.z());
+			*/
+
+			write_color(data[ind], pixel_color, samples_per_pixel);
+			ind += image_channels;
 		}
 	}
 
@@ -72,7 +75,7 @@ int main() {
 
 	// Save Output
 
-	stbi_write_png("output.png", IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_CHANNELS, data, IMAGE_DATA_STRIDE);
+	stbi_write_png("output.png", image_width, image_height, image_channels, data, image_data_stride);
 
 	delete[] data;
 
