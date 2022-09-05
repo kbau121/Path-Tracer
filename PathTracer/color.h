@@ -27,9 +27,9 @@ void write_color(unsigned char& data, color pixel_color, int samples_per_pixel) 
 
 	// Scale based on the number of samples
 	auto scale = 1.0 / samples_per_pixel;
-	r *= scale;
-	g *= scale;
-	b *= scale;
+	r = sqrt(scale * r);
+	g = sqrt(scale * g);
+	b = sqrt(scale * b);
 
 	(&data)[0] = unsigned char(256 * clamp(r, 0.0, 0.999));
 	(&data)[1] = unsigned char(256 * clamp(g, 0.0, 0.999));

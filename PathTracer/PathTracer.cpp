@@ -5,6 +5,7 @@
 #include "camera.h"
 #include "color.h"
 #include "hittable_list.h"
+#include "material.h"
 #include "stb_image_write.h"
 #include "sphere.h"
 
@@ -18,8 +19,14 @@ color ray_color(const ray& r, const hittable_list& world, int depth) {
 	}
 
 	if (world.hit(r, 0.001, infinity, rec)) {
-		point3 target = rec.p + rec.normal + random_unit_vector();
-		return 0.5 * ray_color(ray(rec.p, target - rec.p), world, depth - 1);
+		ray r_out;
+		color attenuation;
+
+		if (rec.mat_ptr->scatter(r, rec, attenuation, r_out)) {
+			return attenuation * ray_color(r_out, world, depth - 1);
+		}
+
+		return color(0, 0, 0);
 	}
 
 	vec3 unit_direction = unit_vector(r.direction());
@@ -31,7 +38,7 @@ int main() {
 	// Image Settings
 
 	const double aspect_ratio = 16.0 / 9.0;
-	const int image_width = 256;
+	const int image_width = 1024;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int image_channels = 3;
 	const int image_data_stride = image_width * image_channels;
@@ -45,8 +52,16 @@ int main() {
 	// World Setup
 
 	hittable_list world;
-	world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
-	world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+
+	auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
+	auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
+	auto material_left = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
+	auto material_right = make_shared<metal>(color(0.8, 0.6, 0.2), 1.0);
+
+	world.add(make_shared<sphere>(point3(0.0, -100.5, -1.0), 100.0, material_ground));
+	world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
+	world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), 0.5, material_left));
+	world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
 
 	// Render
 
@@ -65,12 +80,6 @@ int main() {
 				ray r = cam.get_ray(u, v);
 				pixel_color += ray_color(r, world, max_depth);
 			}
-
-			/*
-			data[ind++] = unsigned char (255 * pixel_color.x());
-			data[ind++] = unsigned char (255 * pixel_color.y());
-			data[ind++] = unsigned char (255 * pixel_color.z());
-			*/
 
 			write_color(data[ind], pixel_color, samples_per_pixel);
 			ind += image_channels;
