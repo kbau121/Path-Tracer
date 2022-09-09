@@ -17,11 +17,11 @@ class sphere : public hittable {
 };
 
 bool sphere::hit(const ray& r, double t_min, double t_max, hit_record& rec) const {
-	vec3 oc = r.origin() - center;
+	vec3 co = r.origin() - center;
 
 	double a = r.direction().length_squared();
-	double half_b = dot(oc, r.direction());
-	double c = oc.length_squared() - radius * radius;
+	double half_b = dot(co, r.direction());
+	double c = co.length_squared() - radius * radius;
 
 	double discriminant = half_b * half_b - a * c;
 	if (discriminant < 0) return false;
