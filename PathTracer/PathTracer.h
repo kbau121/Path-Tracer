@@ -5,9 +5,6 @@
 #include <limits>
 #include <memory>
 
-#include "ray.h"
-#include "vec3.h"
-
 // Usings
 
 using std::shared_ptr;
@@ -40,3 +37,8 @@ inline double clamp(double x, double min, double max) {
 	if (x > max) return max;
 	return x;
 }
+
+// Common Includes
+
+#include "ray.h"
+#include "vec3.h"
