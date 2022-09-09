@@ -5,7 +5,7 @@
 #include <iostream>
 
 int* get_RGB(color pixel_color, int samples_per_pixel) {
-	int RGB[3];
+	int* RGB = new int[3];
 
 	double r = pixel_color.x();
 	double g = pixel_color.y();
