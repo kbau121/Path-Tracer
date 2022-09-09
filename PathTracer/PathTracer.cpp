@@ -30,7 +30,7 @@ color ray_color(const ray& r, const hittable_list& world, int depth) {
 	}
 
 	vec3 unit_direction = unit_vector(r.direction());
-	auto t = 0.5 * (unit_direction.y() + 1.0);
+	double t = 0.5 * (unit_direction.y() + 1.0);
 	return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
@@ -74,8 +74,8 @@ int main() {
 		for (int w = 0; w < image_width; ++w) {
 			color pixel_color(0, 0, 0);
 			for (int s = 0; s < samples_per_pixel; ++s) {
-				auto u = (w + random_double()) / (image_width - 1);
-				auto v = (h + random_double()) / (image_height - 1);
+				double u = (w + random_double()) / (image_width - 1);
+				double v = (h + random_double()) / (image_height - 1);
 
 				ray r = cam.get_ray(u, v);
 				pixel_color += ray_color(r, world, max_depth);

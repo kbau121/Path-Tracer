@@ -5,12 +5,12 @@
 #include <iostream>
 
 void write_color(std::ostream& out, color pixel_color, int samples_per_pixel) {
-	auto r = pixel_color.x();
-	auto g = pixel_color.y();
-	auto b = pixel_color.z();
+	double r = pixel_color.x();
+	double g = pixel_color.y();
+	double b = pixel_color.z();
 
 	// Scale based on the number of samples and apply gamma correction (gamma=2)
-	auto scale = 1.0 / samples_per_pixel;
+	double scale = 1.0 / samples_per_pixel;
 	r = sqrt(scale * r);
 	g = sqrt(scale * g);
 	b = sqrt(scale * b);
@@ -21,12 +21,12 @@ void write_color(std::ostream& out, color pixel_color, int samples_per_pixel) {
 }
 
 void write_color(unsigned char& data, color pixel_color, int samples_per_pixel) {
-	auto r = pixel_color.x();
-	auto g = pixel_color.y();
-	auto b = pixel_color.z();
+	double r = pixel_color.x();
+	double g = pixel_color.y();
+	double b = pixel_color.z();
 
 	// Scale based on the number of samples
-	auto scale = 1.0 / samples_per_pixel;
+	double scale = 1.0 / samples_per_pixel;
 	r = sqrt(scale * r);
 	g = sqrt(scale * g);
 	b = sqrt(scale * b);
