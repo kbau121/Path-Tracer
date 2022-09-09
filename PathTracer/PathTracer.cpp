@@ -38,7 +38,7 @@ int main() {
 	// Image Settings
 
 	const double aspect_ratio = 16.0 / 9.0;
-	const int image_width = 1024;
+	const int image_width = 256;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int image_channels = 3;
 	const int image_data_stride = image_width * image_channels;
@@ -81,7 +81,7 @@ int main() {
 				pixel_color += ray_color(r, world, max_depth);
 			}
 
-			write_color(data[ind], pixel_color, samples_per_pixel);
+			write_color(&data[ind], pixel_color, samples_per_pixel);
 			ind += image_channels;
 		}
 	}
