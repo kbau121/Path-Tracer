@@ -47,3 +47,22 @@ class metal : public material {
 		color albedo;
 		double roughness;
 };
+
+class dielectric : public material {
+	public:
+		dielectric(double index_of_refraction) : ior(index_of_refraction) {}
+
+		virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& r_out) const override {
+			attenuation = color(1.0, 1.0, 1.0);
+			double ior_ratio = rec.front_face ? (1.0 / ior) : ior;
+
+			vec3 unit_direction = unit_vector(r_in.direction());
+			vec3 refracted = refract(unit_direction, rec.normal, ior_ratio);
+
+			r_out = ray(rec.p, refracted);
+			return true;
+		}
+
+	public:
+		double ior;
+};
