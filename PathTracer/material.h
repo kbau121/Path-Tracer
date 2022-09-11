@@ -63,7 +63,7 @@ class dielectric : public material {
 			bool total_internal_reflection = ior_ratio * sin_theta > 1.0;
 			vec3 direction;
 
-			if (total_internal_reflection) {
+			if (total_internal_reflection || reflectance(cos_theta, ior_ratio) > random_double()) {
 				direction = reflect(unit_direction, rec.normal);
 			}
 			else {
@@ -76,4 +76,12 @@ class dielectric : public material {
 
 	public:
 		double ior;
+
+	private:
+		static double reflectance(double cosine, double ior_ratio) {
+			// Schlick's approximation
+			double r0 = (1.0 - ior_ratio) / (1.0 + ior_ratio);
+			r0 = r0 * r0;
+			return r0 + (1 - r0) * pow((1.0 - cosine), 5.0);
+		}
 };
