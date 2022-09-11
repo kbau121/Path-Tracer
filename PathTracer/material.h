@@ -57,9 +57,20 @@ class dielectric : public material {
 			double ior_ratio = rec.front_face ? (1.0 / ior) : ior;
 
 			vec3 unit_direction = unit_vector(r_in.direction());
-			vec3 refracted = refract(unit_direction, rec.normal, ior_ratio);
+			double cos_theta = fmin(dot(-unit_direction, rec.normal), 1.0);
+			double sin_theta = sqrt(1.0 - cos_theta * cos_theta);
 
-			r_out = ray(rec.p, refracted);
+			bool total_internal_reflection = ior_ratio * sin_theta > 1.0;
+			vec3 direction;
+
+			if (total_internal_reflection) {
+				direction = reflect(unit_direction, rec.normal);
+			}
+			else {
+				direction = refract(unit_direction, rec.normal, ior_ratio);
+			}
+
+			r_out = ray(rec.p, direction);
 			return true;
 		}
 
