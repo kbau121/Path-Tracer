@@ -47,7 +47,13 @@ int main() {
 
 	// Camera Settings
 
-	camera cam(point3(-2.0, 2.0, 1.0), point3(0.0, 0.0, -1.0), vec3(0.0, 1.0, 0.0), 20.0, aspect_ratio);
+	point3 camera_position(3.0, 3.0, 2.0);
+	point3 camera_lookat(0.0, 0.0, -1.0);
+	vec3 camera_up(0.0, 1.0, 0.0);
+	double aperture = 2.0;
+	double focus_distance = (camera_position - camera_lookat).length();
+
+	camera cam(camera_position, camera_lookat, camera_up, 20, aspect_ratio, aperture, focus_distance);
 
 	// World Setup
 

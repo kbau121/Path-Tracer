@@ -124,6 +124,15 @@ inline vec3 random_in_unit_sphere() {
 	}
 }
 
+inline vec3 random_in_unit_disk() {
+	while (true) {
+		vec3 p = vec3(random_double(-1, 1), random_double(-1, 1), 0.0);
+		if (p.length_squared() <= 1) {
+			return p;
+		}
+	}
+}
+
 inline vec3 random_unit_vector() {
 	return unit_vector(random_in_unit_sphere());
 }
