@@ -4,10 +4,12 @@
 
 class camera {
 	public:
-		camera() {
-			double aspect_ratio = 16.0 / 9.0;
-			double viewport_height = 2.0;
-			double viewport_width = aspect_ratio * viewport_height;
+		camera(double vfov, double aspect_ratio) {
+			double theta = degrees_to_radians(vfov);
+			double h = tan(theta / 2);
+			double viewport_height = 2.0 * h;
+			double viewport_width = viewport_height * aspect_ratio;
+
 			double focal_length = 1.0;
 
 			origin = point3(0.0, 0.0, 0.0);
