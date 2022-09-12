@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <limits>
 #include <memory>
+#include <random>
 
 // Usings
 
@@ -22,14 +23,16 @@ inline double degrees_to_radians(double degrees) {
 	return degrees * pi / 180;
 }
 
-inline double random_double() {
-	// Returns a random double in the range [0,1)
-	return rand() / (RAND_MAX + 1.0);
+inline double random_double(double min, double max) {
+	// Returns a random double in the range [min,max]
+	static thread_local std::mt19937 generator;
+	std::uniform_real_distribution<double> distribution(min, max);
+	return distribution(generator);
 }
 
-inline double random_double(double min, double max) {
-	// Returns a random double in the range [min,max)
-	return min + (max - min) * random_double();
+inline double random_double() {
+	// Returns a random double in the range [0,1]
+	return random_double(0, 1);
 }
 
 inline double clamp(double x, double min, double max) {

@@ -111,11 +111,20 @@ int main() {
 
 	// Camera Settings
 
+	// Final Render Settings
+	/*
 	point3 camera_position(13.0, 2.0, 3.0);
 	point3 camera_lookat(0.0, 0.0, 0.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
 	double aperture = 0.1;
 	double focus_distance = 10.0;
+	*/
+
+	point3 camera_position(3.0, 2.0, 3.0);
+	point3 camera_lookat(0.0, 0.0, -1.0);
+	vec3 camera_up(0.0, 1.0, 0.0);
+	double aperture = 0.1;
+	double focus_distance = (camera_position - camera_lookat).length();
 
 	camera cam(camera_position, camera_lookat, camera_up, 20, aspect_ratio, aperture, focus_distance);
 
