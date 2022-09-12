@@ -34,32 +34,9 @@ color ray_color(const ray& r, const hittable_list& world, int depth) {
 	return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
-int main() {
-	// Image Settings
-
-	const double aspect_ratio = 16.0 / 9.0;
-	const int image_width = 256;
-	const int image_height = static_cast<int>(image_width / aspect_ratio);
-	const int image_channels = 3;
-	const int image_data_stride = image_width * image_channels;
-	const int samples_per_pixel = 100;
-	const int max_depth = 50;
-
-	// Camera Settings
-
-	point3 camera_position(3.0, 3.0, 2.0);
-	point3 camera_lookat(0.0, 0.0, -1.0);
-	vec3 camera_up(0.0, 1.0, 0.0);
-	double aperture = 2.0;
-	double focus_distance = (camera_position - camera_lookat).length();
-
-	camera cam(camera_position, camera_lookat, camera_up, 20, aspect_ratio, aperture, focus_distance);
-
-	// World Setup
-
-	double R = cos(pi / 4);
+hittable_list sample_scene() {
 	hittable_list world;
-
+	
 	auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
 	auto material_left = make_shared<dielectric>(1.5);
 	auto material_center = make_shared<lambertian>(color(0.1, 0.2, 0.5));
@@ -70,6 +47,81 @@ int main() {
 	world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), -0.45, material_left));
 	world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
 	world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
+
+	return world;
+}
+
+hittable_list random_spheres_scene() {
+	hittable_list world;
+
+	auto ground_mat = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+	world.add(make_shared<sphere>(point3(0.0, -1000.0, 0.0), 1000, ground_mat));
+
+	for (int x = -11; x < 11; ++x) {
+		for (int y = -11; y < 11; ++y) {
+			double choose_mat = random_double();
+			point3 center(x + 0.9 * random_double(), 0.2, y + 0.9 * random_double());
+
+			if ((center - point3(4, 0.2, 0)).length() > 0.9) {
+				shared_ptr<material> next_mat;
+
+				if (choose_mat < 0.8) {
+					// lambertian
+					color albedo = color::random() * color::random();
+					next_mat = make_shared<lambertian>(albedo);
+				}
+				else if (choose_mat < 0.95) {
+					// metal
+					color albedo = color::random(0.5, 1);
+					double roughness = random_double(0, 0.5);
+					next_mat = make_shared<metal>(albedo, roughness);
+				}
+				else {
+					// glass
+					next_mat = make_shared<dielectric>(1.5);
+				}
+
+				world.add(make_shared<sphere>(center, 0.2, next_mat));
+			}
+		}
+	}
+
+	auto dielectric_mat = make_shared<dielectric>(1.5);
+	world.add(make_shared<sphere>(point3(0.0, 1.0, 0.0), 1.0, dielectric_mat));
+
+	auto lambertian_mat = make_shared<lambertian>(color(0.4, 0.2, 0.1));
+	world.add(make_shared<sphere>(point3(-4.0, 1.0, 0.0), 1.0, lambertian_mat));
+
+	auto metal_mat = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
+	world.add(make_shared<sphere>(point3(4.0, 1.0, 0.0), 1.0, metal_mat));
+
+	return world;
+}
+
+int main() {
+	// Image Settings
+
+	const double aspect_ratio = 3.0 / 2.0;
+	const int image_width = 256;
+	const int image_height = static_cast<int>(image_width / aspect_ratio);
+	const int image_channels = 3;
+	const int image_data_stride = image_width * image_channels;
+	const int samples_per_pixel = 100;
+	const int max_depth = 50;
+
+	// Camera Settings
+
+	point3 camera_position(13.0, 2.0, 3.0);
+	point3 camera_lookat(0.0, 0.0, 0.0);
+	vec3 camera_up(0.0, 1.0, 0.0);
+	double aperture = 0.1;
+	double focus_distance = 10.0;
+
+	camera cam(camera_position, camera_lookat, camera_up, 20, aspect_ratio, aperture, focus_distance);
+
+	// World Setup
+
+	hittable_list world = sample_scene();
 
 	// Render
 
