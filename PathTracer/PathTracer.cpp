@@ -9,6 +9,7 @@
 #include "stb_image_write.h"
 #include "sphere.h"
 
+#include <chrono>
 #include <iostream>
 
 color ray_color(const ray& r, const hittable_list& world, int depth) {
@@ -120,6 +121,7 @@ int main() {
 	double focus_distance = 10.0;
 	*/
 
+	// Sample Settings
 	point3 camera_position(3.0, 2.0, 3.0);
 	point3 camera_lookat(0.0, 0.0, -1.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
@@ -135,6 +137,8 @@ int main() {
 	// Render
 
 	unsigned char * data = new unsigned char[image_width * image_height * image_channels];
+
+	auto time_s = std::chrono::high_resolution_clock::now();
 
 	uint32_t ind = 0;
 	for (int h = image_height - 1; h >= 0; --h) {
@@ -155,8 +159,15 @@ int main() {
 		}
 	}
 
+	auto time_f = std::chrono::high_resolution_clock::now();
+	auto duration = (time_f - time_s);
+	auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+	auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration - hours);
+	auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration - hours - minutes);
+	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration - hours - minutes - seconds);;
+
 	printf("%f%%\n", 100.f);
-	printf("\nDone\n");
+	printf("\nElapsed time: %02d:%02d:%02lld:%04lld\n", hours.count(), minutes.count(), seconds.count(), milliseconds.count());
 
 	// Save Output
 
