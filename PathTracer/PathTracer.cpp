@@ -11,6 +11,9 @@
 
 #include <chrono>
 #include <iostream>
+#include <thread>
+
+using std::thread;
 
 color ray_color(const ray& r, const hittable_list& world, int depth) {
 	hit_record rec;
@@ -99,11 +102,31 @@ hittable_list random_spheres_scene() {
 	return world;
 }
 
+void sample_pixel
+(
+	int w, int h,
+	const int image_width, const int image_height, const int samples_per_pixel, const int max_depth,
+	camera cam, hittable_list world,
+	unsigned char* data, uint32_t ind
+)
+{
+	color pixel_color(0, 0, 0);
+	for (int s = 0; s < samples_per_pixel; ++s) {
+		double u = (w + random_double()) / (image_width - 1);
+		double v = (h + random_double()) / (image_height - 1);
+
+		ray r = cam.get_ray(u, v);
+		pixel_color += ray_color(r, world, max_depth);
+	}
+
+	write_color(&data[ind], pixel_color, samples_per_pixel);
+}
+
 int main() {
 	// Image Settings
 
 	const double aspect_ratio = 3.0 / 2.0;
-	const int image_width = 256;
+	const int image_width = 1024;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int image_channels = 3;
 	const int image_data_stride = image_width * image_channels;
@@ -140,23 +163,29 @@ int main() {
 
 	auto time_s = std::chrono::high_resolution_clock::now();
 
+	// TODO maybe a thread pool instead
+	thread * threads = new thread[image_height * image_width];
+
+	// Run a thread for every pixel
+	printf("Starting threads...\n");
 	uint32_t ind = 0;
 	for (int h = image_height - 1; h >= 0; --h) {
 		printf("%f%%\n", 100 * float(image_height - (h + 1)) / image_height);
 
 		for (int w = 0; w < image_width; ++w) {
-			color pixel_color(0, 0, 0);
-			for (int s = 0; s < samples_per_pixel; ++s) {
-				double u = (w + random_double()) / (image_width - 1);
-				double v = (h + random_double()) / (image_height - 1);
-
-				ray r = cam.get_ray(u, v);
-				pixel_color += ray_color(r, world, max_depth);
-			}
-
-			write_color(&data[ind], pixel_color, samples_per_pixel);
+			threads[ind / image_channels] = thread(sample_pixel, w, h, image_width, image_height, samples_per_pixel, max_depth, cam, world, data, ind);
+			
 			ind += image_channels;
 		}
+	}
+
+	// Wait for all threads to finish
+	printf("Waiting for theads to finish...\n");
+	for (int i = 0; i < image_height * image_width; ++i) {
+		if (i % image_height == 0) {
+			printf("%f%%\n", 100 * float(i) / (image_height * image_width));
+		}
+		threads[i].join();
 	}
 
 	auto time_f = std::chrono::high_resolution_clock::now();
