@@ -8,10 +8,10 @@
 #include "material.h"
 #include "stb_image_write.h"
 #include "sphere.h"
+#include "thread_pool.h"
 
 #include <chrono>
 #include <iostream>
-#include <thread>
 
 using std::thread;
 
@@ -163,30 +163,29 @@ int main() {
 
 	auto time_s = std::chrono::high_resolution_clock::now();
 
-	// TODO maybe a thread pool instead
-	thread * threads = new thread[image_height * image_width];
+	// Initialize the thread pool
+	thread_pool pool;
 
-	// Run a thread for every pixel
-	printf("Starting threads...\n");
+	// Queue all jobs in the thread pool
+	printf("Starting work...\n");
+	pool.Start(image_width, image_width * image_height);
+
 	uint32_t ind = 0;
 	for (int h = image_height - 1; h >= 0; --h) {
-		printf("%f%%\n", 100 * float(image_height - (h + 1)) / image_height);
-
 		for (int w = 0; w < image_width; ++w) {
-			threads[ind / image_channels] = thread(sample_pixel, w, h, image_width, image_height, samples_per_pixel, max_depth, cam, world, data, ind);
+			pool.QueueJob(
+				[w, h, image_width, image_height, samples_per_pixel, max_depth, cam, world, data, ind]
+				{
+					sample_pixel(w, h, image_width, image_height, samples_per_pixel, max_depth, cam, world, data, ind);
+				});
 			
 			ind += image_channels;
 		}
 	}
 
 	// Wait for all threads to finish
-	printf("Waiting for theads to finish...\n");
-	for (int i = 0; i < image_height * image_width; ++i) {
-		if (i % image_height == 0) {
-			printf("%f%%\n", 100 * float(i) / (image_height * image_width));
-		}
-		threads[i].join();
-	}
+	while (pool.IsBusy());
+	pool.Stop();
 
 	auto time_f = std::chrono::high_resolution_clock::now();
 	auto duration = (time_f - time_s);
@@ -195,7 +194,6 @@ int main() {
 	auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration - hours - minutes);
 	auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration - hours - minutes - seconds);;
 
-	printf("%f%%\n", 100.f);
 	printf("\nElapsed time: %02d:%02d:%02lld:%04lld\n", hours.count(), minutes.count(), seconds.count(), milliseconds.count());
 
 	// Save Output
