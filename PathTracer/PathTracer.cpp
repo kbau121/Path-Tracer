@@ -105,9 +105,10 @@ hittable_list random_spheres_scene() {
 void sample_pixel
 (
 	int w, int h,
-	const int image_width, const int image_height, const int samples_per_pixel, const int max_depth,
+	const int image_width, const int image_height,
+	const int samples_per_pixel, const int max_depth, const int image_channels,
 	camera cam, hittable_list world,
-	unsigned char* data, uint32_t ind
+	unsigned char* data
 )
 {
 	color pixel_color(0, 0, 0);
@@ -119,7 +120,27 @@ void sample_pixel
 		pixel_color += ray_color(r, world, max_depth);
 	}
 
+	const int ind = ((image_height - h - 1) * image_width + w) * image_channels;
 	write_color(&data[ind], pixel_color, samples_per_pixel);
+}
+
+void sample_rect
+(
+	int x_s, int y_s, const int rect_width, const int rect_height,
+	const int image_width, const int image_height,
+	const int samples_per_pixel, const int max_depth, const int image_channels,
+	camera cam, hittable_list world,
+	unsigned char* data
+)
+{
+	int y_max = std::min(y_s + rect_height, image_height);
+	int x_max = std::min(x_s + rect_width, image_width);
+
+	for (int y = y_s; y < y_max; ++y) {
+		for (int x = x_s; x < x_max; ++x) {
+			sample_pixel(x, y, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, world, data);
+		}
+	}
 }
 
 int main() {
@@ -158,8 +179,10 @@ int main() {
 	hittable_list world = sample_scene();
 
 	// Render
-
+	
 	unsigned char * data = new unsigned char[image_width * image_height * image_channels];
+	const int rect_width = 64;
+	const int rect_height = 64;
 
 	auto time_s = std::chrono::high_resolution_clock::now();
 
@@ -168,18 +191,17 @@ int main() {
 
 	// Queue all jobs in the thread pool
 	printf("Starting work...\n");
-	pool.Start(image_width, image_width * image_height);
+	pool.Start(1, int(std::ceil(double(image_height) / rect_height) * std::ceil(double(image_width) / rect_width)));
 
-	uint32_t ind = 0;
-	for (int h = image_height - 1; h >= 0; --h) {
-		for (int w = 0; w < image_width; ++w) {
+	for (int y = 0; y < image_height; y += rect_height) {
+		for (int x = 0; x < image_width; x += rect_width) {
 			pool.QueueJob(
-				[w, h, image_width, image_height, samples_per_pixel, max_depth, cam, world, data, ind]
+				[x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, world, data]
 				{
-					sample_pixel(w, h, image_width, image_height, samples_per_pixel, max_depth, cam, world, data, ind);
+					sample_rect(x, y, rect_width, rect_height,
+						image_width, image_height, samples_per_pixel, max_depth, image_channels,
+						cam, world, data);
 				});
-			
-			ind += image_channels;
 		}
 	}
 
