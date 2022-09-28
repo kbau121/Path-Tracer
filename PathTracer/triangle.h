@@ -1,0 +1,49 @@
+#pragma once
+
+#include "hittable.h"
+#include "vec3.h"
+
+class triangle : public hittable {
+	public:
+		triangle() {}
+		triangle(point3 p0, point3 p1, point3 p2, shared_ptr<material> m) : p{ p0, p1, p2 }, mat_ptr(m) {}
+
+		virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override;
+
+	public:
+		point3 p[3];
+		shared_ptr<material> mat_ptr;
+};
+
+bool triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) const {
+	vec3 d = unit_vector(r.direction());
+
+	vec3 e1 = p[1] - p[0];
+	vec3 e2 = p[2] - p[0];
+	vec3 T = r.origin() - p[0];
+	vec3 P = cross(d, e2);
+	vec3 Q = cross(T, e1);
+	double Pe1 = dot(P, e1);
+
+	if (Pe1 == 0) {
+		return false;
+	}
+
+	vec3 out = vec3(dot(Q, e2), dot(P, T), dot(Q, d)) / Pe1;
+
+	if (out.y() < 0 || out.z() < 0 || out.y() + out.z() > 1) {
+		return false;
+	}
+
+	if (out.x() < t_min || t_max < out.x()) {
+		return false;
+	}
+
+	rec.t = out.x();
+	rec.p = r.at(rec.t);
+	vec3 outward_normal = unit_vector(cross(e1, e2));
+	rec.set_face_normal(r, outward_normal);
+	rec.mat_ptr = mat_ptr;
+
+	return true;
+}

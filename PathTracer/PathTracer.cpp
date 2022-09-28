@@ -9,6 +9,7 @@
 #include "stb_image_write.h"
 #include "sphere.h"
 #include "thread_pool.h"
+#include "triangle.h"
 
 #include <chrono>
 #include <iostream>
@@ -51,6 +52,20 @@ hittable_list sample_scene() {
 	world.add(make_shared<sphere>(point3(-1.0, 0.0, -1.0), -0.45, material_left));
 	world.add(make_shared<sphere>(point3(0.0, 0.0, -1.0), 0.5, material_center));
 	world.add(make_shared<sphere>(point3(1.0, 0.0, -1.0), 0.5, material_right));
+
+	return world;
+}
+
+hittable_list test_scene() {
+	auto material_test = make_shared<lambertian>(color(1.0, 0.2, 0.3));
+
+	hittable_list world;
+
+	world.add(make_shared<triangle>(
+		point3(0.0, 0.0, -1.0),
+		point3(1.0, 0.0, -1.0),
+		point3(0.0, 1.0, -1.0),
+		material_test));
 
 	return world;
 }
@@ -147,7 +162,7 @@ int main() {
 	// Image Settings
 
 	const double aspect_ratio = 3.0 / 2.0;
-	const int image_width = 1024;
+	const int image_width = 256;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int image_channels = 3;
 	const int image_data_stride = image_width * image_channels;
@@ -166,7 +181,7 @@ int main() {
 	*/
 
 	// Sample Settings
-	point3 camera_position(3.0, 2.0, 3.0);
+	point3 camera_position(0.0, 0.0, 5.0);
 	point3 camera_lookat(0.0, 0.0, -1.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
 	double aperture = 0.1;
@@ -176,7 +191,7 @@ int main() {
 
 	// World Setup
 
-	hittable_list world = sample_scene();
+	hittable_list world = test_scene();
 
 	// Render
 	
