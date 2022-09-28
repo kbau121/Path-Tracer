@@ -16,5 +16,5 @@ class ray {
 
 	public:
 		point3 orig;
-		point3 dir;
+		point3 dir;		// TODO Guarentee normalized directions
 };

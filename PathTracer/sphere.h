@@ -29,15 +29,17 @@ bool sphere::hit(const ray& r, double t_min, double t_max, hit_record& rec) cons
 
 	// Find the nearest root within the range [t_min, t_max]
 	double root = (-half_b - sqrtd) / a;
-	if (root < t_min || t_max < root) {
+	double dist = root * r.direction().length();
+	if (dist < t_min || t_max < dist) {
 		root = (-half_b + sqrtd) / a;
-		if (root < t_min || t_max < root) {
+		dist = root * r.direction().length();
+		if (dist < t_min || t_max < dist) {
 			return false;
 		}
 	}
 
-	rec.t = root;
-	rec.p = r.at(rec.t);
+	rec.t = dist;
+	rec.p = r.at(root);
 	vec3 outward_normal = (rec.p - center) / radius;
 	rec.set_face_normal(r, outward_normal);
 	rec.mat_ptr = mat_ptr;

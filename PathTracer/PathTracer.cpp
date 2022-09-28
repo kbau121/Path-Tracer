@@ -57,15 +57,26 @@ hittable_list sample_scene() {
 }
 
 hittable_list test_scene() {
-	auto material_test = make_shared<lambertian>(color(1.0, 0.2, 0.3));
+	auto material_ground = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+	auto material_metal = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
+	auto material_lambertian = make_shared<lambertian>(color(0.1, 0.2, 0.5));
 
 	hittable_list world;
+
+	world.add(make_shared<sphere>(point3(0.0, -1000.0, 0.0), 1000, material_ground));
 
 	world.add(make_shared<triangle>(
 		point3(0.0, 0.0, -1.0),
 		point3(1.0, 0.0, -1.0),
 		point3(0.0, 1.0, -1.0),
-		material_test));
+		material_metal
+		));
+	
+	world.add(make_shared<sphere>(
+		point3(0.0, 0.5, 0.0),
+		0.5,
+		material_lambertian
+		));
 
 	return world;
 }
@@ -181,7 +192,7 @@ int main() {
 	*/
 
 	// Sample Settings
-	point3 camera_position(0.0, 0.0, 5.0);
+	point3 camera_position(3.0, 2.0, 5.0);
 	point3 camera_lookat(0.0, 0.0, -1.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
 	double aperture = 0.1;

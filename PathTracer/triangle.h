@@ -6,12 +6,23 @@
 class triangle : public hittable {
 	public:
 		triangle() {}
-		triangle(point3 p0, point3 p1, point3 p2, shared_ptr<material> m) : p{ p0, p1, p2 }, mat_ptr(m) {}
+		triangle(point3 p0, point3 p1, point3 p2, shared_ptr<material> m) : p{ p0, p1, p2 }, mat_ptr(m) {
+			vec3 e1 = p[1] - p[0];
+			vec3 e2 = p[2] - p[0];
+
+			vec3 _n = unit_vector(cross(e1, e2));
+			n[0] = _n;
+			n[1] = _n;
+			n[2] = _n;
+		}
+
+		triangle(point3 p0, point3 p1, point3 p2, vec3 n0, vec3 n1, vec3 n2, shared_ptr<material>m) : p{ p0, p1, p2 }, n{ unit_vector(n0), unit_vector(n1), unit_vector(n2) }, mat_ptr(m) {}
 
 		virtual bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override;
 
 	public:
 		point3 p[3];
+		vec3 n[3];
 		shared_ptr<material> mat_ptr;
 };
 
@@ -40,8 +51,8 @@ bool triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 	}
 
 	rec.t = out.x();
-	rec.p = r.at(rec.t);
-	vec3 outward_normal = unit_vector(cross(e1, e2));
+	rec.p = r.at(rec.t / r.direction().length());
+	vec3 outward_normal = n[0] * out.y() + n[1] * out.z() + n[2] * (1 - out.y() - out.z());
 	rec.set_face_normal(r, outward_normal);
 	rec.mat_ptr = mat_ptr;
 
