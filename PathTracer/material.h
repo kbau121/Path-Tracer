@@ -99,7 +99,14 @@ class normal : public material {
 			}
 
 			r_out = ray(rec.p, scatter_direction);
-			attenuation = (standard_unit_vector + rec.normal) / 2;
+			
+			if (rec.front_face) {
+				attenuation = (standard_unit_vector + rec.normal) / 2;
+			}
+			else {
+				attenuation = (standard_unit_vector - rec.normal) / 2;
+			}
+
 			return true;
 		}
 

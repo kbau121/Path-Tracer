@@ -58,7 +58,7 @@ bool triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 		n[1] * out.y() +
 		n[2] * out.z();
 
-	rec.set_face_normal(r, outward_normal);
+	rec.set_face_normal(r, unit_vector(outward_normal));
 	rec.mat_ptr = mat_ptr;
 
 	return true;

@@ -6,6 +6,7 @@
 #include "color.h"
 #include "hittable_list.h"
 #include "material.h"
+#include "obj_reader.h"
 #include "stb_image_write.h"
 #include "sphere.h"
 #include "thread_pool.h"
@@ -211,8 +212,8 @@ int main() {
 	*/
 
 	// Sample Settings
-	point3 camera_position(3.0, 2.0, 8.0);
-	point3 camera_lookat(0.0, 0.0, -1.0);
+	point3 camera_position(8.0, 8.0, 8.0);
+	point3 camera_lookat(0.0, 0.0, 0.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
 	double aperture = 0.1;
 	double focus_distance = (camera_position - camera_lookat).length();
@@ -221,7 +222,10 @@ int main() {
 
 	// World Setup
 
-	hittable_list world = test_scene();
+	//hittable_list world = test_scene();
+	hittable_list world;
+	//read_obj("C:\\Users\\Chocomann\\Downloads\\TestOBJ.obj", world);
+	read_obj("C:\\Users\\Chocomann\\Downloads\\FlatCube.obj", world);
 
 	// Render
 	
