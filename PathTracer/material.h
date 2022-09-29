@@ -85,3 +85,24 @@ class dielectric : public material {
 			return r0 + (1 - r0) * pow((1.0 - cosine), 5.0);
 		}
 };
+
+class normal : public material {
+	public:
+		normal() {}
+
+		virtual bool scatter(const ray& r_in, const hit_record& rec, color& attenuation, ray& r_out) const override {
+			vec3 scatter_direction = rec.normal + random_unit_vector();
+
+			// Catch degenerate scatter directions
+			if (scatter_direction.near_zero()) {
+				scatter_direction = rec.normal;
+			}
+
+			r_out = ray(rec.p, scatter_direction);
+			attenuation = (standard_unit_vector + rec.normal) / 2;
+			return true;
+		}
+
+	private:
+		const vec3 standard_unit_vector = unit_vector(vec3(1, 1, 1));
+};

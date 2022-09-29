@@ -60,20 +60,39 @@ hittable_list test_scene() {
 	auto material_ground = make_shared<lambertian>(color(0.5, 0.5, 0.5));
 	auto material_metal = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
 	auto material_lambertian = make_shared<lambertian>(color(0.1, 0.2, 0.5));
+	auto material_normal = make_shared<normal>();
 
 	hittable_list world;
 
 	world.add(make_shared<sphere>(point3(0.0, -1000.0, 0.0), 1000, material_ground));
 
+	point3 p0 = point3(0.0, 0.0, -1.0);
+	point3 p1 = point3(2.0, 0.0, -2.0);
+	point3 p2 = point3(0.0, 2.0, -2.0);
+	point3 p3 = point3(2.0, 2.0, -1.0);
+
 	world.add(make_shared<triangle>(
-		point3(0.0, 0.0, -1.0),
-		point3(1.0, 0.0, -1.0),
-		point3(0.0, 1.0, -1.0),
-		material_metal
+		p0,
+		p1,
+		p2,
+		cross(p1 - p0, p2 - p0),
+		vec3(0, 0, 1),
+		vec3(0, 0, 1),
+		material_normal
+		));
+
+	world.add(make_shared<triangle>(
+		p3,
+		p1,
+		p2,
+		-cross(p1 - p3, p2 - p3),
+		vec3(0, 0, 1),
+		vec3(0, 0, 1),
+		material_normal
 		));
 	
 	world.add(make_shared<sphere>(
-		point3(0.0, 0.5, 0.0),
+		point3(0.0, 0.5, 0.5),
 		0.5,
 		material_lambertian
 		));
@@ -192,7 +211,7 @@ int main() {
 	*/
 
 	// Sample Settings
-	point3 camera_position(3.0, 2.0, 5.0);
+	point3 camera_position(3.0, 2.0, 8.0);
 	point3 camera_lookat(0.0, 0.0, -1.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
 	double aperture = 0.1;

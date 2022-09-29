@@ -147,6 +147,7 @@
     <ClInclude Include="hittable.h" />
     <ClInclude Include="hittable_list.h" />
     <ClInclude Include="material.h" />
+    <ClInclude Include="obj_reader.h" />
     <ClInclude Include="PathTracer.h" />
     <ClInclude Include="ray.h" />
     <ClInclude Include="sphere.h" />

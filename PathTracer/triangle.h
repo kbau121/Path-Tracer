@@ -52,7 +52,12 @@ bool triangle::hit(const ray& r, double t_min, double t_max, hit_record& rec) co
 
 	rec.t = out.x();
 	rec.p = r.at(rec.t / r.direction().length());
-	vec3 outward_normal = n[0] * out.y() + n[1] * out.z() + n[2] * (1 - out.y() - out.z());
+
+	vec3 outward_normal =
+		n[0] * (1 - out.y() - out.z()) +
+		n[1] * out.y() +
+		n[2] * out.z();
+
 	rec.set_face_normal(r, outward_normal);
 	rec.mat_ptr = mat_ptr;
 
