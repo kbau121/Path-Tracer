@@ -15,6 +15,9 @@
 #include <chrono>
 #include <iostream>
 
+#include <embree3/rtcore.h>
+#include "glm/glm.hpp"
+
 using std::thread;
 
 color ray_color(const ray& r, const hittable_list& world, int depth) {
@@ -225,7 +228,60 @@ int main() {
 	//hittable_list world = test_scene();
 	hittable_list world;
 	//read_obj("C:\\Users\\Chocomann\\Downloads\\TestOBJ.obj", world);
-	read_obj("C:\\Users\\Chocomann\\Downloads\\FlatCube.obj", world);
+
+	RTCDevice device = rtcNewDevice("");
+	RTCScene scene = rtcNewScene(device);
+	RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	glm::vec3* verts = (glm::vec3*) rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), 3);
+	glm::uvec3* inds = (glm::uvec3*) rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), 3);
+
+	verts[0] = glm::vec3(0, 0, 0);
+	verts[1] = glm::vec3(1, 0, 0);
+	verts[2] = glm::vec3(0.5, 1, 0);
+
+	inds[0] = glm::uvec3(0, 1, 2);
+
+	rtcCommitGeometry(geometry);
+	rtcAttachGeometry(scene, geometry);
+	rtcReleaseGeometry(geometry);
+	geometry = nullptr; // geometry, more like, ge-nope-etry
+	rtcCommitScene(scene);
+
+	RTCIntersectContext context;
+	//context.flags = RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT; // try dis later
+	rtcInitIntersectContext(&context);
+
+	for (int y = 0; y <= 20; ++y) {
+		for (int x = 0; x <= 20; ++x) {
+			RTCRayHit rayhit;
+			rayhit.ray.org_x = float(x) / 20;
+			rayhit.ray.org_y = float(y) / 20;
+			rayhit.ray.org_z = -1;
+			rayhit.ray.dir_x = 0;
+			rayhit.ray.dir_y = 0;
+			rayhit.ray.dir_z = 1;
+			rayhit.ray.tnear = 0.001f;
+			rayhit.ray.tfar = std::numeric_limits<float>::infinity();
+			rayhit.ray.mask = -1;
+			rayhit.ray.flags = 0;
+			rayhit.hit.geomID = -1;
+			rayhit.hit.instID[0] = -1;
+
+			rtcIntersect1(scene, &context, &rayhit);
+
+			if (rayhit.hit.geomID != -1) {
+				printf("#");
+			}
+			else {
+				printf(" ");
+			}
+		}
+
+		printf("\n");
+	}
+
+	rtcReleaseScene(scene);
+	rtcReleaseDevice(device);
 
 	// Render
 	
