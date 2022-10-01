@@ -1,20 +1,20 @@
 #pragma once
 
-#include "vec3.h"
+#include "glm/glm.hpp"
 
 class ray {
 	public:
 		ray() {}
-		ray(const point3& origin, const vec3& direction) : orig(origin), dir(direction) {}
+		ray(const glm::vec3& origin, const glm::vec3& direction) : orig(origin), dir(direction) {}
 
-		point3 origin() const { return orig; }
-		point3 direction() const { return dir; }
+		glm::vec3 origin() const { return orig; }
+		glm::vec3 direction() const { return dir; }
 
-		point3 at(double t) const {
+		glm::vec3 at(float t) const {
 			return orig + t * dir;
 		}
 
 	public:
-		point3 orig;
-		point3 dir;		// TODO Guarentee normalized directions
+		glm::vec3 orig;
+		glm::vec3 dir;		// TODO Guarentee normalized directions
 };

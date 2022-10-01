@@ -42,7 +42,7 @@ void read_obj(const char* file_location, hittable_list& objects) {
 	const string SPACE = " ";
 	const string FSLASH = "/";
 
-	vector<point3> vertices;
+	vector<vec3> vertices;
 	vector<vec3> normals;
 	//std::vector<vec3> textureCoords;
 	vector<face> faces;
@@ -59,19 +59,19 @@ void read_obj(const char* file_location, hittable_list& objects) {
 			pop_next(line, SPACE, token);
 
 			if (token.compare(VERT) == 0) {
-				double e[3];
+				float e[3];
 
 				for (int i = 0; i < 3; ++i) {
-					e[i] = stod(pop_next(line, SPACE, token));
+					e[i] = stof(pop_next(line, SPACE, token));
 				}
 
-				vertices.push_back(point3(e[0], e[1], e[2]));
+				vertices.push_back(vec3(e[0], e[1], e[2]));
 			}
 			else if (token.compare(NORM) == 0) {
-				double e[3];
+				float e[3];
 
 				for (int i = 0; i < 3; ++i) {
-					e[i] = stod(pop_next(line, SPACE, token));
+					e[i] = stof(pop_next(line, SPACE, token));
 				}
 
 				normals.push_back(vec3(e[0], e[1], e[2]));
