@@ -20,19 +20,43 @@
 
 using std::thread;
 
-vec3 ray_color(const ray& r, const hittable_list& world, int depth) {
+vec3 ray_color(const ray& r, RTCScene* scene, int depth) {
 	hit_record rec;
 
 	if (depth <= 0) {
 		return vec3(0.f);
 	}
 
-	if (world.hit(r, 0.001f, infinity, rec)) {
+	RTCRayHit rayhit;
+	rayhit.ray.org_x = r.orig.x;
+	rayhit.ray.org_y = r.orig.y;
+	rayhit.ray.org_z = r.orig.z;
+	rayhit.ray.dir_x = r.dir.x;
+	rayhit.ray.dir_y = r.dir.y;
+	rayhit.ray.dir_z = r.dir.z;
+	rayhit.ray.tnear = 0.001f;
+	rayhit.ray.tfar = infinity;
+	rayhit.ray.mask = -1;
+	rayhit.ray.flags = 0;
+	rayhit.hit.geomID = -1;
+	rayhit.hit.instID[0] = -1;
+
+	RTCIntersectContext context;
+	rtcInitIntersectContext(&context);
+	rtcIntersect1(*scene, &context, &rayhit);
+
+	if (rayhit.hit.geomID != -1) {
 		ray r_out;
 		vec3 attenuation;
 
+		rec.t = rayhit.ray.tfar;
+		rec.p = vec3(r.at(rayhit.ray.tfar));
+		rec.set_face_normal(r, normalize(vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z)));
+		rec.mat_ptr = make_shared<normal>();
+
 		if (rec.mat_ptr->scatter(r, rec, attenuation, r_out)) {
-			return attenuation * ray_color(r_out, world, depth - 1);
+			//return attenuation * ray_color(r_out, scene, depth - 1);
+			return attenuation;
 		}
 
 		return vec3(0.f);
@@ -156,7 +180,8 @@ void sample_pixel
 	int w, int h,
 	const int image_width, const int image_height,
 	const int samples_per_pixel, const int max_depth, const int image_channels,
-	camera cam, hittable_list world,
+	camera cam,
+	RTCScene* scene,
 	unsigned char* data
 )
 {
@@ -166,7 +191,7 @@ void sample_pixel
 		float v = (h + random_float()) / (image_height - 1);
 
 		ray r = cam.get_ray(u, v);
-		pixel_color += ray_color(r, world, max_depth);
+		pixel_color += ray_color(r, scene, max_depth);
 	}
 
 	const int ind = ((image_height - h - 1) * image_width + w) * image_channels;
@@ -178,7 +203,8 @@ void sample_rect
 	int x_s, int y_s, const int rect_width, const int rect_height,
 	const int image_width, const int image_height,
 	const int samples_per_pixel, const int max_depth, const int image_channels,
-	camera cam, hittable_list world,
+	camera cam,
+	RTCScene* scene,
 	unsigned char* data
 )
 {
@@ -187,7 +213,7 @@ void sample_rect
 
 	for (int y = y_s; y < y_max; ++y) {
 		for (int x = x_s; x < x_max; ++x) {
-			sample_pixel(x, y, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, world, data);
+			sample_pixel(x, y, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene, data);
 		}
 	}
 }
@@ -225,11 +251,12 @@ int main() {
 
 	// World Setup
 
-	hittable_list world = sample_scene();
-
 	RTCDevice device = rtcNewDevice("");
 	RTCScene scene = rtcNewScene(device);
-	RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	RTCGeometry geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke.obj", device);
+
+	//RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	/*
 	glm::vec3* verts = (glm::vec3*) rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), 3);
 	glm::uvec3* inds = (glm::uvec3*) rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), 3);
 
@@ -240,46 +267,16 @@ int main() {
 	inds[0] = glm::uvec3(0, 1, 2);
 
 	rtcCommitGeometry(geometry);
+	*/
+
 	rtcAttachGeometry(scene, geometry);
 	rtcReleaseGeometry(geometry);
 	geometry = nullptr; // geometry, more like, ge-nope-etry
 	rtcCommitScene(scene);
 
-	RTCIntersectContext context;
-	//context.flags = RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT; // try dis later
-	rtcInitIntersectContext(&context);
+	RTCScene* scene_ptr = &scene;
 
-	for (int y = 0; y <= 20; ++y) {
-		for (int x = 0; x <= 20; ++x) {
-			RTCRayHit rayhit;
-			rayhit.ray.org_x = float(x) / 20;
-			rayhit.ray.org_y = float(y) / 20;
-			rayhit.ray.org_z = -1;
-			rayhit.ray.dir_x = 0;
-			rayhit.ray.dir_y = 0;
-			rayhit.ray.dir_z = 1;
-			rayhit.ray.tnear = 0.001f;
-			rayhit.ray.tfar = std::numeric_limits<float>::infinity();
-			rayhit.ray.mask = -1;
-			rayhit.ray.flags = 0;
-			rayhit.hit.geomID = -1;
-			rayhit.hit.instID[0] = -1;
-
-			rtcIntersect1(scene, &context, &rayhit);
-
-			if (rayhit.hit.geomID != -1) {
-				printf("#");
-			}
-			else {
-				printf(" ");
-			}
-		}
-
-		printf("\n");
-	}
-
-	rtcReleaseScene(scene);
-	rtcReleaseDevice(device);
+	//context.flags = RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT; // try later
 
 	// Render
 	
@@ -298,13 +295,17 @@ int main() {
 
 	for (int y = 0; y < image_height; y += rect_height) {
 		for (int x = 0; x < image_width; x += rect_width) {
+			sample_rect(x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene_ptr, data);
+
+			/*
 			pool.QueueJob(
-				[x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, world, data]
+				[x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, _scene, _context, data]
 				{
 					sample_rect(x, y, rect_width, rect_height,
 						image_width, image_height, samples_per_pixel, max_depth, image_channels,
-						cam, world, data);
+						cam, _scene, _context, data);
 				});
+				*/
 		}
 	}
 
@@ -324,6 +325,11 @@ int main() {
 	// Save Output
 
 	stbi_write_png("output.png", image_width, image_height, image_channels, data, image_data_stride);
+
+	// Cleanup
+
+	rtcReleaseScene(scene);
+	rtcReleaseDevice(device);
 
 	delete[] data;
 
