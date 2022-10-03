@@ -140,7 +140,7 @@ void read_obj(const char* file_location, hittable_list& objects) {
 	delete rec;
 }
 
-RTCGeometry read_obj(const char* file_location, RTCDevice &device) {
+RTCGeometry read_obj(const char* file_location, RTCDevice& device) {
 	parse_rec* rec = parse_obj(file_location);
 
 	RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
@@ -149,6 +149,27 @@ RTCGeometry read_obj(const char* file_location, RTCDevice &device) {
 
 	for (int i = 0; i < rec->vertices.size(); ++i) {
 		verts[i] = rec->vertices[i];
+	}
+
+	for (int i = 0; i < rec->faces.size(); ++i) {
+		inds[i] = glm::uvec3(rec->faces[i].v[0], rec->faces[i].v[1], rec->faces[i].v[2]);
+	}
+
+	delete rec;
+
+	rtcCommitGeometry(geometry);
+	return geometry;
+}
+
+RTCGeometry read_obj(const char* file_location, RTCDevice& device, glm::vec3 p_transform, glm::vec3 s_transform) {
+	parse_rec* rec = parse_obj(file_location);
+
+	RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+	glm::vec3* verts = (glm::vec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), rec->vertices.size());
+	glm::uvec3* inds = (glm::uvec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), rec->faces.size());
+
+	for (int i = 0; i < rec->vertices.size(); ++i) {
+		verts[i] = rec->vertices[i] * s_transform + p_transform;
 	}
 
 	for (int i = 0; i < rec->faces.size(); ++i) {

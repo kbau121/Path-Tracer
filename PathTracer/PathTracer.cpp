@@ -20,7 +20,7 @@
 
 using std::thread;
 
-vec3 ray_color(const ray& r, RTCScene* scene, int depth) {
+vec3 ray_color(const ray& r, RTCScene* scene, vector<shared_ptr<material>> mats, int depth) {
 	hit_record rec;
 
 	if (depth <= 0) {
@@ -52,11 +52,10 @@ vec3 ray_color(const ray& r, RTCScene* scene, int depth) {
 		rec.t = rayhit.ray.tfar;
 		rec.p = vec3(r.at(rayhit.ray.tfar));
 		rec.set_face_normal(r, normalize(vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z)));
-		rec.mat_ptr = make_shared<normal>();
+		rec.mat_ptr = mats[rayhit.hit.geomID];
 
 		if (rec.mat_ptr->scatter(r, rec, attenuation, r_out)) {
-			//return attenuation * ray_color(r_out, scene, depth - 1);
-			return attenuation;
+			return attenuation * ray_color(r_out, scene, mats, depth - 1);
 		}
 
 		return vec3(0.f);
@@ -181,7 +180,7 @@ void sample_pixel
 	const int image_width, const int image_height,
 	const int samples_per_pixel, const int max_depth, const int image_channels,
 	camera cam,
-	RTCScene* scene,
+	RTCScene* scene, vector<shared_ptr<material>> mats,
 	unsigned char* data
 )
 {
@@ -191,7 +190,7 @@ void sample_pixel
 		float v = (h + random_float()) / (image_height - 1);
 
 		ray r = cam.get_ray(u, v);
-		pixel_color += ray_color(r, scene, max_depth);
+		pixel_color += ray_color(r, scene, mats, max_depth);
 	}
 
 	const int ind = ((image_height - h - 1) * image_width + w) * image_channels;
@@ -204,7 +203,7 @@ void sample_rect
 	const int image_width, const int image_height,
 	const int samples_per_pixel, const int max_depth, const int image_channels,
 	camera cam,
-	RTCScene* scene,
+	RTCScene* scene, vector<shared_ptr<material>> mats,
 	unsigned char* data
 )
 {
@@ -213,7 +212,7 @@ void sample_rect
 
 	for (int y = y_s; y < y_max; ++y) {
 		for (int x = x_s; x < x_max; ++x) {
-			sample_pixel(x, y, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene, data);
+			sample_pixel(x, y, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene, mats, data);
 		}
 	}
 }
@@ -222,56 +221,50 @@ int main() {
 	// Image Settings
 
 	const float aspect_ratio = 3.f / 2.f;
-	const int image_width = 256;
+	const int image_width = 2048;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int image_channels = 3;
 	const int image_data_stride = image_width * image_channels;
-	const int samples_per_pixel = 128;
+	const int samples_per_pixel = 256;
 	const int max_depth = 64;
 
 	// Camera Settings
-
-	// Final Render Settings
-	/*
-	point3 camera_position(13.0, 2.0, 3.0);
-	point3 camera_lookat(0.0, 0.0, 0.0);
-	vec3 camera_up(0.0, 1.0, 0.0);
-	float aperture = 0.1f;
-	float focus_distance = 10.f;
-	*/
-
-	// Sample Settings
 	vec3 camera_position(0.0, 0.0, 7.0);
 	vec3 camera_lookat(0.0, 0.0, 0.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
-	float aperture = 0.1f;
+	float aperture = 0.3f;
 	float focus_distance = length(camera_position - camera_lookat);
 
 	camera cam(camera_position, camera_lookat, camera_up, 20, aspect_ratio, aperture, focus_distance);
 
 	// World Setup
 
+	vector<shared_ptr<material>> mats;
+
 	RTCDevice device = rtcNewDevice("");
 	RTCScene scene = rtcNewScene(device);
-	RTCGeometry geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke.obj", device);
 
-	//RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-	/*
-	glm::vec3* verts = (glm::vec3*) rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), 3);
-	glm::uvec3* inds = (glm::uvec3*) rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), 3);
-
-	verts[0] = glm::vec3(0, 0, 0);
-	verts[1] = glm::vec3(1, 0, 0);
-	verts[2] = glm::vec3(0.5, 1, 0);
-
-	inds[0] = glm::uvec3(0, 1, 2);
-
-	rtcCommitGeometry(geometry);
-	*/
-
+	// Glass Monkey
+	RTCGeometry geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke_sds2_hollow.obj", device);
+	mats.push_back(make_shared<dielectric>(1.5f));
 	rtcAttachGeometry(scene, geometry);
 	rtcReleaseGeometry(geometry);
-	geometry = nullptr; // geometry, more like, ge-nope-etry
+	geometry = nullptr;
+
+	// Lambertian Monkey
+	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke_sds2.obj", device, vec3(0, 0, -2.f), vec3(2.f));
+	mats.push_back(make_shared<metal>(vec3(0.7f, 0.6f, 0.5f), 0.f));
+	rtcAttachGeometry(scene, geometry);
+	rtcReleaseGeometry(geometry);
+	geometry = nullptr;
+
+	// Metal Monkey
+	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke_sds2.obj", device, vec3(0, -1.5f, -12.f), vec3(8.f));
+	mats.push_back(make_shared<normal>());
+	rtcAttachGeometry(scene, geometry);
+	rtcReleaseGeometry(geometry);
+	geometry = nullptr;
+
 	rtcCommitScene(scene);
 
 	RTCScene* scene_ptr = &scene;
@@ -295,17 +288,11 @@ int main() {
 
 	for (int y = 0; y < image_height; y += rect_height) {
 		for (int x = 0; x < image_width; x += rect_width) {
-			sample_rect(x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene_ptr, data);
-
-			/*
 			pool.QueueJob(
-				[x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, _scene, _context, data]
+				[x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene_ptr, mats, data]
 				{
-					sample_rect(x, y, rect_width, rect_height,
-						image_width, image_height, samples_per_pixel, max_depth, image_channels,
-						cam, _scene, _context, data);
+					sample_rect(x, y, rect_width, rect_height, image_width, image_height, samples_per_pixel, max_depth, image_channels, cam, scene_ptr, mats, data);
 				});
-				*/
 		}
 	}
 
