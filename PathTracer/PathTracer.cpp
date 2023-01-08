@@ -24,7 +24,8 @@ vec3 ray_color(const ray& r, RTCScene* scene, vector<shared_ptr<material>> mats,
 	hit_record rec;
 
 	if (depth <= 0) {
-		return vec3(0.f);
+		return vec3(1.f); //return vec3(0.f);
+
 	}
 
 	RTCRayHit rayhit;
@@ -53,6 +54,12 @@ vec3 ray_color(const ray& r, RTCScene* scene, vector<shared_ptr<material>> mats,
 		rec.p = vec3(r.at(rayhit.ray.tfar));
 		rec.set_face_normal(r, normalize(vec3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z)));
 		rec.mat_ptr = mats[rayhit.hit.geomID];
+
+		//
+		vec3 norm;
+		rtcInterpolate0(rtcGetGeometry(*scene, rayhit.hit.geomID), rayhit.hit.primID, rayhit.hit.u, rayhit.hit.v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &norm.x, 3);
+		rec.normal = normalize(norm);
+		//
 
 		if (rec.mat_ptr->scatter(r, rec, attenuation, r_out)) {
 			return attenuation * ray_color(r_out, scene, mats, depth - 1);
@@ -221,15 +228,15 @@ int main() {
 	// Image Settings
 
 	const float aspect_ratio = 3.f / 2.f;
-	const int image_width = 2048;
+	const int image_width = 1024;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 	const int image_channels = 3;
 	const int image_data_stride = image_width * image_channels;
-	const int samples_per_pixel = 256;
-	const int max_depth = 64;
+	const int samples_per_pixel = 64;
+	const int max_depth = 32;
 
 	// Camera Settings
-	vec3 camera_position(0.0, 0.0, 7.0);
+	vec3 camera_position(0, 0, -7);
 	vec3 camera_lookat(0.0, 0.0, 0.0);
 	vec3 camera_up(0.0, 1.0, 0.0);
 	float aperture = 0.3f;
@@ -243,24 +250,29 @@ int main() {
 
 	RTCDevice device = rtcNewDevice("");
 	RTCScene scene = rtcNewScene(device);
+	RTCGeometry geometry;
 
-	// Glass Monkey
-	RTCGeometry geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke_sds2_hollow.obj", device);
-	mats.push_back(make_shared<dielectric>(1.5f));
+	// Jade Dragon
+	/*
+	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\dragon.obj", device);
+	vec3 jade_col = vec3(0.f / 255, 163.f / 255, 108.f / 255);
+	mats.push_back(make_shared<metal>(jade_col, 0.3f));
 	rtcAttachGeometry(scene, geometry);
 	rtcReleaseGeometry(geometry);
 	geometry = nullptr;
+	*/
 
-	// Lambertian Monkey
-	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke_sds2.obj", device, vec3(0, 0, -2.f), vec3(2.f));
-	mats.push_back(make_shared<metal>(vec3(0.7f, 0.6f, 0.5f), 0.f));
-	rtcAttachGeometry(scene, geometry);
-	rtcReleaseGeometry(geometry);
-	geometry = nullptr;
-
-	// Metal Monkey
-	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\monke_sds2.obj", device, vec3(0, -1.5f, -12.f), vec3(8.f));
+	// Smooth Cube
+	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\alt_cube.obj", device, vec3(0, 0, 0), vec3(0.6f));
 	mats.push_back(make_shared<normal>());
+	rtcAttachGeometry(scene, geometry);
+	rtcReleaseGeometry(geometry);
+	geometry = nullptr;
+
+	// Lens
+	geometry = read_obj("C:\\Users\\Chocomann\\Downloads\\lens.obj", device, vec3(0, -1, 0), vec3(1));
+	mats.push_back(make_shared<dielectric>(1.f));
+	//mats.push_back(make_shared<normal>());
 	rtcAttachGeometry(scene, geometry);
 	rtcReleaseGeometry(geometry);
 	geometry = nullptr;

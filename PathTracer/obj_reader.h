@@ -89,15 +89,25 @@ parse_rec* parse_obj(const char* file_location) {
 				isSmooth = (stoi(pop_next(line, SPACE)) == 1);
 			}
 			else if (token.compare(FACE) == 0) {
-				faces.push_back(face());
+				face next_face = face();
 
 				for (int i = 0; i < 3; ++i) {
 					pop_next(line, SPACE, token);
 
-					faces[faces.size() - 1].v[i] = stoi(pop_next(token, FSLASH)) - 1;
-					faces[faces.size() - 1].t[i] = stoi(pop_next(token, FSLASH)) - 1;
-					faces[faces.size() - 1].n[i] = stoi(token) - 1;
+					try {
+						next_face.v[i] = stoi(pop_next(token, FSLASH)) - 1;
+
+						try {
+							next_face.t[i] = stoi(pop_next(token, FSLASH)) - 1;
+						}
+						catch (exception) {}
+						
+						next_face.n[i] = stoi(token) - 1;
+					}
+					catch (exception) { }
 				}
+
+				faces.push_back(next_face);
 			}
 		}
 		
@@ -140,19 +150,37 @@ void read_obj(const char* file_location, hittable_list& objects) {
 	delete rec;
 }
 
-RTCGeometry read_obj(const char* file_location, RTCDevice& device) {
+RTCGeometry read_obj(const char* file_location, RTCDevice& device, glm::vec3 p_transform, glm::vec3 s_transform) {
 	parse_rec* rec = parse_obj(file_location);
 
 	RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-	glm::vec3* verts = (glm::vec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), rec->vertices.size());
+	glm::vec3* verts = (glm::vec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), rec->faces.size()*3);
 	glm::uvec3* inds = (glm::uvec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), rec->faces.size());
 
-	for (int i = 0; i < rec->vertices.size(); ++i) {
-		verts[i] = rec->vertices[i];
+	for (int i = 0; i < rec->faces.size(); i++) {
+		verts[i*3] = rec->vertices[rec->faces[i].v[0]] * s_transform + p_transform;
+		verts[i*3 + 1] = rec->vertices[rec->faces[i].v[1]] * s_transform + p_transform;
+		verts[i*3 + 2] = rec->vertices[rec->faces[i].v[2]] * s_transform + p_transform;
 	}
 
-	for (int i = 0; i < rec->faces.size(); ++i) {
-		inds[i] = glm::uvec3(rec->faces[i].v[0], rec->faces[i].v[1], rec->faces[i].v[2]);
+	int norm_size = rec->faces.size()*3;
+	glm::vec3* norms = new glm::vec3[norm_size];
+	for (int i = 0; i < rec->faces.size(); i++) {
+		/*
+		norms[i * 3] = rec->vertices[rec->faces[i].v[0]];
+		norms[i * 3 + 1] = rec->vertices[rec->faces[i].v[1]];
+		norms[i * 3 + 2] = rec->vertices[rec->faces[i].v[2]];
+		*/
+
+		norms[i * 3] = rec->normals[rec->faces[i].n[0]];
+		norms[i * 3 + 1] = rec->normals[rec->faces[i].n[1]];
+		norms[i * 3 + 2] = rec->normals[rec->faces[i].n[2]];
+	}
+	rtcSetGeometryVertexAttributeCount(geometry, 1);
+	rtcSetSharedGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3, norms, 0, sizeof(glm::vec3), rec->normals.size());
+
+	for (int i = 0; i < rec->faces.size(); i++) {
+		inds[i] = glm::uvec3(i*3, i*3 + 1, i*3 + 2);
 	}
 
 	delete rec;
@@ -161,23 +189,6 @@ RTCGeometry read_obj(const char* file_location, RTCDevice& device) {
 	return geometry;
 }
 
-RTCGeometry read_obj(const char* file_location, RTCDevice& device, glm::vec3 p_transform, glm::vec3 s_transform) {
-	parse_rec* rec = parse_obj(file_location);
-
-	RTCGeometry geometry = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-	glm::vec3* verts = (glm::vec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), rec->vertices.size());
-	glm::uvec3* inds = (glm::uvec3*)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), rec->faces.size());
-
-	for (int i = 0; i < rec->vertices.size(); ++i) {
-		verts[i] = rec->vertices[i] * s_transform + p_transform;
-	}
-
-	for (int i = 0; i < rec->faces.size(); ++i) {
-		inds[i] = glm::uvec3(rec->faces[i].v[0], rec->faces[i].v[1], rec->faces[i].v[2]);
-	}
-
-	delete rec;
-
-	rtcCommitGeometry(geometry);
-	return geometry;
+RTCGeometry read_obj(const char* file_location, RTCDevice& device) {
+	return read_obj(file_location, device, glm::vec3(0), glm::vec3(1));
 }

@@ -70,6 +70,10 @@ class dielectric : public material {
 				direction = refract(unit_direction, rec.normal, ior_ratio);
 			}
 
+			//
+			//direction = refract(unit_direction, rec.normal, 1.f);
+			//
+
 			r_out = ray(rec.p, direction);
 			return true;
 		}
